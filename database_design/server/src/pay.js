@@ -4,25 +4,7 @@ const url = require('url')
 
 const queryString = require('querystring')
 
-const bodyParser = require('body-parser')
-
-const express = require('express')
-
-const middleWare = require('./middleware')
-
-const app = express()
-
-app.all('*', function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
-    res.header("X-Powered-By", ' 3.2.1');
-    res.header("Content-Type", "application/json;charset=utf-8");
-    next();
-});
-
-app.use(express.static(__dirname+'/../static/images'))
-
+// 转换工作名称
 function jobChange(first, second, third) {
 
     var obj = {}
@@ -70,7 +52,7 @@ function jobChange(first, second, third) {
 }
 
 // 获取待登记酬薪数据总数
-app.get('/getsalaryreadytotal', (req, res) => {
+function getSalaryReadyTotal(req, res) {
 
     db(`select count(*)count from grant_money where status = 'ready'`, (err, result) => {
 
@@ -92,35 +74,10 @@ app.get('/getsalaryreadytotal', (req, res) => {
 
     })
 
-})
-
-// 获取待复核员工数据总数
-app.get('/getreadytotal', (req, res) => {
-
-    db(`select count(*)count from worker_status where workerstatus = 'ready'`, (err, result) => {
-
-        if(err) {
-
-            console.log(err)
-
-            return
-
-        }
-
-        res.send({
-
-            msg:"ok",
-
-            count:result.recordset[0].count
-
-        })
-
-    })
-
-})
+}
 
 // 获取酬薪登记员工数据总数
-app.get('/getstandardreadytotal', (req, res) => {
+function getStandardReadyTotal(req, res) {
 
     db(`select count(*)count from standard where status = 'ready'`, (err, result) => {
 
@@ -142,59 +99,10 @@ app.get('/getstandardreadytotal', (req, res) => {
 
     })
 
-})
-
-// 获取待复核员工数据
-app.get('/getready', (req, res) => {
-
-    var arg = url.parse(req.url).query
-
-    var params =  queryString.parse(arg)
-
-    var page =parseInt(params.id)
-
-    var number = 8
-
-    db(`select distinct worker_detail.fileNo, name, sex, first, second, third, jobname from worker_detail, mechanism, job, worker_status where worker_detail.fileNo = mechanism.fileNo and mechanism.fileNo = job.fileNo and job.fileNo = worker_status.fileNo and worker_status.workerstatus = 'ready' order by worker_detail.fileNo offset ${(page-1)*number} rows fetch next ${number} rows only`,(err, result) => {
-
-        if(err) {
-
-            console.log(err)
-
-            return
-
-        }
-
-        console.log(result)
-
-        var data = {
-
-            msg:'ok',
-
-            data:result.recordset
-
-        }
-
-        data.data.forEach((value) => {
-
-            var obj = jobChange(value.first,value.second,value.third)
-
-            value.first = obj.first
-            
-            value.second = obj.second
-
-            value.third = obj.third
-
-        })
-
-        res.send(data)
-
-    })
-
-})
+}
 
 // 获取待复核酬薪标准数据
-app.get('/getstandardready', (req, res) => {
+function getStandardReady(req, res) {
 
     var arg = url.parse(req.url).query
 
@@ -224,10 +132,10 @@ app.get('/getstandardready', (req, res) => {
 
     })
 
-})
+}
 
 // 请求待复核薪酬发放信息
-app.get('/getsalary', (req, res) => {
+function getSalary(req, res) {
 
     var arg = url.parse(req.url).query
 
@@ -275,10 +183,10 @@ app.get('/getsalary', (req, res) => {
 
     })
 
-})
+}
 
 // 获取当前最大的酬薪编号
-app.get('/getstandardno', (req, res) => {
+function getStandardNo(req, res) {
 
     db(`select max(standardNo)standardNo from standard`, (err, result) => {
 
@@ -314,10 +222,10 @@ app.get('/getstandardno', (req, res) => {
 
     })
 
-})
+}
 
 // 获取该酬薪下的所有员工信息
-app.post('/getsalaryworker', bodyParser.urlencoded({extended:false}), (req, res) => {
+function getsalaryWorker(req, res) {
 
     var No = req.body.grantNo
 
@@ -343,10 +251,10 @@ app.post('/getsalaryworker', bodyParser.urlencoded({extended:false}), (req, res)
 
     })
 
-})
+}
 
 // 获取酬薪复核搜索结果
-app.post('/searchsalary', bodyParser.urlencoded({extended:false}), (req, res) => {
+function searchSalary(req, res) {
 
     var data = req.body
 
@@ -384,10 +292,10 @@ app.post('/searchsalary', bodyParser.urlencoded({extended:false}), (req, res) =>
 
     })
 
-})
+}
 
 // 获取酬薪标准搜索结果
-app.post('/searchstandard', bodyParser.urlencoded({extended:false}), (req, res) => {
+function searchStandard(req, res) {
 
     var data = req.body
 
@@ -411,208 +319,10 @@ app.post('/searchstandard', bodyParser.urlencoded({extended:false}), (req, res) 
 
     })
 
-})
-
-// 获取搜索结果
-app.post('/search', bodyParser.urlencoded({extended:false}), (req, res) => {
-
-    var data = {
-
-        first:req.body.first || "%",
-
-        second:req.body.second || "%",
-
-        third:req.body.third || "%",
-
-        jobtype:req.body.jobtype || "%",
-
-        jobname:req.body.jobname || "%",
-
-        start:req.body.start,
-
-        end:req.body.end
-
-    }
-
-    db(`select distinct worker_detail.fileNo, name, sex, first, second, third, jobname, exist, workerstatus from worker_detail, mechanism, job, worker_status where mechanism.first like '${data.first}' and mechanism.second like '${data.second}' and mechanism.third like '${data.third}' and job.jobtype like '${data.jobtype}' and job.jobname like '${data.jobname}' and worker_detail.time between '${data.start}' and '${data.end}' and worker_detail.fileNo = mechanism.fileNo and mechanism.fileNo = job.fileNo and job.fileNo = worker_status.fileNo`,(err, result) => {
-
-        if(err) {
-
-            console.log(err)
-
-            return
-
-        }
-
-        var value = {
-
-            msg:"ok",
-
-            data:result.recordset
-
-        }
-
-        value.data.forEach((value) => {
-
-            var obj = jobChange(value.first,value.second,value.third)
-
-            value.first = obj.first
-            
-            value.second = obj.second
-
-            value.third = obj.third
-
-        })
-
-        res.send(value)
-
-    })
-
-})
-
-// 上传职工信息
-app.post('/upload', middleWare.uploadImage.single('image'), (req, res) => {
-
-    var data = req.body
-
-    var imageUrl = "http://localhost:8888/"+req.file.originalname
-
-    db(`select max(right(fileNo,2))fileNo from mechanism`, (err,result) => {
-
-        console.log(result)
-
-        if(result.recordset[0].fileNo == null){ 
-
-            var number = "01"
-
-        }else {
-
-            if(parseInt(result.recordset[0].fileNo) < 10) {
-
-                var number = "0" + (parseInt(result.recordset[0].fileNo) + 1)
-
-            }else {
-
-                var number = parseInt(result.recordset[0].fileNo) + 1 +""
-
-            }
-
-        }
-
-        var fileNo = "2018"+data.first+""+data.second+""+data.third+""+number
-
-        console.log(fileNo)
-
-        new Promise((resolve, reject) => {
-
-            db(`insert into mechanism values ('${fileNo}','${data.first}','${data.second}','${data.third}')`,(err,result) => {
-
-                    if(err) {
-                
-                        reject(err)
-                
-                    }
-            
-                    if(result.rowsAffected[0] >= 0) {
-            
-                        resolve()
-            
-                    }else {
-            
-                        reject('error')
-            
-                    }
-                
-            })
-
-        }).then(() => {
-
-            db(`insert into salary values ('${fileNo}','${data.standard}','${data.openingbank}','${data.account}','${data.loginman}')`,(err,result) => {
-
-                    if(err) {
-                
-                        reject(err)
-                
-                    }
-                
-            })
-
-        }).then(() => {
-
-            db(`insert into address values ('${fileNo}','${data.address}','${data.code}')`,(err,result) => {
-
-                    if(err) {
-                
-                        reject(err)
-                
-                    }
-            })
-
-        }).then(() => {
-
-            db(`insert into experience values ('${fileNo}','${data.resume}','${data.homemessage}','${data.remark}')`,(err,result) => {
-
-                    if(err) {
-                
-                        reject(err)
-                
-                    }
-
-            })
-
-        }).then(() => {
-
-            db(`insert into job values ('${fileNo}','${data.jobtype}','${data.jobname}','${data.jobsay}')`,(err,result) => {
-
-                    if(err) {
-                
-                        reject(err)
-                
-                    }
-                
-            })
-
-        }).then(() => {
-
-            db(`insert into worker_detail values ('${fileNo}','${data.name}','${data.sex}','${data.phone}','${data.socialcode}','${data.QQ}','${data.mobile}','${data.time}','${data.speciality}','${data.age}','${data.education}','${data.favor}','${data.country}','${data.birthplace}','${data.birthday}','${data.profession}','${data.nation}','${data.religion}','${data.political}','${data.idcard}','${data.educationlimit}','${imageUrl}','${data.email}')`,(err,result) => {
-
-                    if(err) {
-                
-                        reject(err)
-                
-                    }
-
-                
-            })
-
-        }).then(() => {
-
-            db(`insert into worker_status values ('${fileNo}','ready','exist')`,(err,result) => {
-
-                if(err) {
-            
-                    reject(err)
-            
-                }
-        
-                res.send({msg:"ok"})
-            
-        })
-
-        }).catch((err) => {
-
-            console.log(err)
-
-            res.send({msg:'err'})
-
-        })
-        
-    })
-
-})
+}
 
 // 更新薪酬总额
-app.post('/updatesumary', bodyParser.urlencoded({extended:false}), (req, res) => {
+function updateSumary(req, res) {
 
     var data = req.body
 
@@ -628,11 +338,10 @@ app.post('/updatesumary', bodyParser.urlencoded({extended:false}), (req, res) =>
 
     })
 
-})
+}
 
 // 登记酬薪信息
-app.post('/loginsalary', bodyParser.urlencoded({extended:false}), (req, res) => {
-
+function loginSalary(req, res) {
 
     var data = req.body
 
@@ -658,10 +367,10 @@ app.post('/loginsalary', bodyParser.urlencoded({extended:false}), (req, res) => 
 
     })
 
-})
+}
 
 // 更新酬薪标准总价
-app.post('/updatestandardtotal', bodyParser.urlencoded({extended:false}), (req, res) => {
+function updateStandardTotal(req, res) {
 
     var data = req.body
 
@@ -681,10 +390,10 @@ app.post('/updatestandardtotal', bodyParser.urlencoded({extended:false}), (req, 
 
     })
 
-})
+}
 
 // 复核薪酬信息
-app.post('/updatestandard', bodyParser.urlencoded({extended:false}), (req, res) => {
+function updateStandard(req, res) {
 
     var data = req.body
 
@@ -845,90 +554,10 @@ app.post('/updatestandard', bodyParser.urlencoded({extended:false}), (req, res) 
 
     })
 
-})
-
-// 复核职工信息
-app.post('/update', bodyParser.urlencoded({extended:false}), (req, res) => {
-
-    var data = req.body
-
-    new Promise((resolve, reject) => {
-
-        db(`update worker_detail set name = '${data.name}', sex = '${data.sex}',phone = '${data.phone}',socialcode = '${data.socialcode}',QQ = '${data.QQ}',mobile = '${data.mobile}',time = '${data.time}',speciality = '${data.speciality}',age = '${data.age}',education = '${data.education}',favor = '${data.favor}',country = '${data.country}',birthplace = '${data.birthplace}',profession = '${data.profession}',nation = '${data.nation}',religion = '${data.religion}',political = '${data.political}',idcard = '${data.idcard}',educationlimit = '${data.educationlimit}',head = '${data.head}',email = '${data.email}' where fileNo = '${data.fileNo}'`, (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-
-            resolve()
-
-        })
-
-    }).then(() => {
-
-        db(`update salary set standard = '${data.standard}',openingbank = '${data.openingbank}',account = '${data.account}',loginman = '${data.loginman}' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-
-        })
-
-    }).then(() => {
-
-        db(`update experience set resume = '${data.resume}',homemessage = '${data.homemessage}',remark = '${data.remark}' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-
-        })
-
-    }).then(() => {
-
-        db(`update address set address = '${data.address}',code = '${data.code}' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-    
-        })
-
-    }).then(() => {
-
-        db(`update worker_status set workerstatus = 'ok' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-    
-            res.send({msg:"ok"})
-    
-
-        })
-
-    }).catch((err) => {
-
-        console.lor(err)
-
-        res.send({msg:"error"})
-
-    }) 
-
-})
+}
 
 // 修改薪酬信息
-app.post('/correctstandard', bodyParser.urlencoded({extended:false}), (req, res) => {
+function correctStandard(req, res) {
 
     var data = req.body
 
@@ -1049,116 +678,10 @@ app.post('/correctstandard', bodyParser.urlencoded({extended:false}), (req, res)
 
     })
 
-})
+}
 
-// 修改职工信息
-app.post('/correct', bodyParser.urlencoded({extended:false}), (req, res) => {
-
-    var data = req.body
-
-    new Promise((resolve, reject) => {
-
-        db(`update worker_detail set name = '${data.name}', sex = '${data.sex}',phone = '${data.phone}',socialcode = '${data.socialcode}',QQ = '${data.QQ}',mobile = '${data.mobile}',time = '${data.time}',speciality = '${data.speciality}',age = '${data.age}',education = '${data.education}',favor = '${data.favor}',country = '${data.country}',birthplace = '${data.birthplace}',profession = '${data.profession}',nation = '${data.nation}',religion = '${data.religion}',political = '${data.political}',idcard = '${data.idcard}',educationlimit = '${data.educationlimit}',head = '${data.head}',email = '${data.email}' where fileNo = '${data.fileNo}'`, (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-
-            resolve()
-
-        })
-
-    }).then(() => {
-
-        db(`update salary set standard = '${data.standard}',openingbank = '${data.openingbank}',account = '${data.account}',loginman = '${data.loginman}' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-
-        })
-
-    }).then(() => {
-
-        db(`update experience set resume = '${data.resume}',homemessage = '${data.homemessage}',remark = '${data.remark}' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-
-        })
-
-    }).then(() => {
-
-        db(`update address set address = '${data.address}',code = '${data.code}' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-    
-        })
-
-    }).then(() => {
-
-        db(`update worker_status set workerstatus = 'ready' where fileNo = '${data.fileNo}'`,  (err, result) => {
-
-            if(err) {
-                
-                reject(err)
-        
-            }
-    
-            res.send({msg:"ok"})
-    
-
-        })
-
-    }).catch((err) => {
-
-        console.lor(err)
-
-        res.send({msg:"error"})
-
-    }) 
-
-})
-
-// 将职工档案状态设置为not exist
-app.post('/delete', bodyParser.urlencoded({extended:false}), (req, res) => {
-
-    var data = req.body
-
-    db(`update worker_status set exist = 'not exist' where fileNo = '${data.fileNo}'`, (err, result) => {
-
-        res.send({msg:"ok"})
-
-    })
-
-})
-
-// 将职工档案状态设置为not exist
-app.post('/recover', bodyParser.urlencoded({extended:false}), (req, res) => {
-
-    var data = req.body
-
-    db(`update worker_status set exist = 'exist' where fileNo = '${data.fileNo}'`, (err, result) => {
-
-        res.send({msg:"ok"})
-
-    })
-
-})
- 
 // 获取酬薪标准详情
-app.post('/getstandarddetail', bodyParser.urlencoded({extended:false}), (req, res) => {
+function getStandardDetail(req, res) {
 
     var data = req.body
 
@@ -1182,90 +705,10 @@ app.post('/getstandarddetail', bodyParser.urlencoded({extended:false}), (req, re
 
     })
 
-})
-
-// 获取职工详情
-app.post('/getdetail', bodyParser.urlencoded({extended:false}), (req, res) => {
-
-    db(`select distinct * from worker_detail, job, salary, mechanism, experience, address, worker_status where worker_detail.fileNo = '${req.body.fileNo}' and worker_detail.fileNo = mechanism.fileNo and mechanism.fileNo = job.fileNo and job.fileNo = worker_status.fileNo and worker_status.fileNo = salary.fileNo and salary.fileNo = experience.fileNo and experience.fileNo = address.fileNo `, (err, result) => {
-
-        if(err) {
-
-            console.log(err)
-
-            return
-            
-        }
-
-        var data = {
-
-            msg:"ok",
-
-            data:result.recordset[0]
-
-        }
-
-        var obj = jobChange(data.data.first, data.data.second, data.data.third)
-
-        data.data.first = obj.first
-
-        data.data.second = obj.second
-
-        data.data.third = obj.third
-
-        res.send(data)
-
-    })
-
-})
-
-// 使用者登录
-app.post('/login', bodyParser.urlencoded({extended:false}), (req, res) => {
-
-    db(`select * from manager where loginName = '${req.body.username}' and password = '${req.body.password}'`,(err,result) => {
-
-        if(err) {
-    
-            console.log(err)
-
-            res.send({
-
-                msg:"error"
-
-            })
-    
-            return
-    
-        }
-
-        if(result.recordsets[0][0] != null) {
-
-            var data = {
-
-                msg:"ok",
-    
-                data:result.recordsets[0][0]
-    
-            }
-        
-            res.send(data)
-
-        }else {
-
-            res.send({
-
-                msg:"error"
-
-            })
-
-        }
-    
-    })
-
-})
+}
 
 // 上传酬薪标准数据
-app.post('/uploadstandard', bodyParser.urlencoded({extended:false}), (req, res) => {
+function uploadStandard(req, res) {
 
     var data = req.body
 
@@ -1335,9 +778,38 @@ app.post('/uploadstandard', bodyParser.urlencoded({extended:false}), (req, res) 
 
     })
 
-})
+}
 
+module.exports = {
 
+    getSalaryReadyTotal: getSalaryReadyTotal,
 
+    getStandardReadyTotal: getStandardReadyTotal,
 
-.listen(8888)
+    getStandardReady: getStandardReady,
+
+    getSalary: getSalary,
+
+    getStandardNo: getStandardNo,
+
+    getsalaryWorker: getsalaryWorker,
+
+    searchSalary: searchSalary,
+
+    searchStandard: searchStandard,
+
+    updateSumary: updateSumary,
+
+    loginSalary: loginSalary,
+
+    updateStandardTotal: updateStandardTotal,
+
+    updateStandard: updateStandard,
+
+    correctStandard: correctStandard,
+
+    getStandardDetail: getStandardDetail,
+
+    uploadStandard: uploadStandard
+
+}
