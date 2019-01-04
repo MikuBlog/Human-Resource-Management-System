@@ -6,6 +6,7 @@
           <span>
             <i class="fa fa-user-circle fa-lg"></i>
             {{user.name}}
+            <div class="arrow"></div>
             <div class="slide" @click="refresh()">注销</div>
           </span>
           
@@ -208,6 +209,22 @@ export default {
           color: #fff;
           background: rgb(255, 187, 0);
         }
+        
+        .arrow {
+          opacity: 0;
+          display: inline-block;
+          position: absolute;
+          z-index: 2;
+          right: 0;
+          left: 58px;
+          margin-top: 17px;
+          width: 0;
+          height: 0;
+          border-bottom: 10px solid #fff;
+          border-right: 10px solid transparent;
+          border-left: 10px solid transparent;
+          transition: 0.5s;
+        }
       }
 
       span:first-of-type {
@@ -217,6 +234,9 @@ export default {
       span:first-of-type:hover {
         .slide {
           height: 2.5rem;
+        }
+        .arrow {
+          opacity: 1;
         }
       }
 
