@@ -6,8 +6,8 @@
           <span>
             <i class="fa fa-user-circle fa-lg"></i>
             {{user.name}}
-            <div class="arrow"></div>
             <div class="slide" @click="refresh()">注销</div>
+            <div class="arrow"></div>
           </span>
           
           <span @click="back()" title="返回上一页">
@@ -224,6 +224,10 @@ export default {
           border-right: 10px solid transparent;
           border-left: 10px solid transparent;
           transition: 0.5s;
+        }
+        
+        .slide:hover + .arrow {
+          border-bottom: 10px solid rgb(255, 187, 0);
         }
       }
 
