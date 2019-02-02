@@ -9,11 +9,11 @@ const dbConfig = {
     // 数据库名称
     database: "people_resoures",
     // 登录名
-    user:'xuanzai',
+    user: 'xuanzai',
     // 登录密码
-    password:'wen289138',
+    password: 'wen289138',
     // 登录端口号
-    port:1433
+    port: 1433
 
 };
 
